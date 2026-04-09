@@ -4,8 +4,95 @@ import viteLogo from "./assets/vite.svg";
 import heroImg from "./assets/hero.png";
 import "./App.css";
 
+const API_BASE_URL = "/api";
+
+async function request(path, options = {}) {
+  const res = await fetch(API_BASE_URL + path, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+
+  const type = res.headers.get("content-type") || "";
+  const data = type.includes("application/json")
+    ? await res.json()
+    : await res.text();
+
+  if (!res.ok) {
+    const msg =
+      (data && typeof data === "object" && (data.message || data.error)) ||
+      data ||
+      "Request failed";
+    throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
+  }
+
+  return data;
+}
+
+async function registerUser(form) {
+  return request("/users/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: form.email,
+      password: form.password,
+      telephone: form.telephone,
+      firstName: form.firstName,
+      lastName: form.lastName,
+    }),
+  });
+}
+
+async function verifyUser(email, token) {
+  const q = new URLSearchParams({ email, token }).toString();
+  return request("/users/verify?" + q);
+}
+
 function App() {
-  const [count, setCount] = useState(0);
+  const [registerForm, setRegisterForm] = useState({
+    email: "",
+    password: "",
+    telephone: "",
+    firstName: "",
+    lastName: "",
+  });
+  const [registerData, setRegisterData] = useState(null);
+  const [registerError, setRegisterError] = useState("");
+
+  const [verifyForm, setVerifyForm] = useState({ email: "", token: "" });
+  const [verifyData, setVerifyData] = useState(null);
+  const [verifyError, setVerifyError] = useState("");
+
+  const [isLoadingRegister, setIsLoadingRegister] = useState(false);
+  const [isLoadingVerify, setIsLoadingVerify] = useState(false);
+
+  const handleRegisterSubmit = async (event) => {
+    event.preventDefault();
+    setIsLoadingRegister(true);
+    setRegisterError("");
+    setRegisterData(null);
+    try {
+      const data = await registerUser(registerForm);
+      setRegisterData(data);
+    } catch (error) {
+      setRegisterError(error.message || "Request failed");
+    } finally {
+      setIsLoadingRegister(false);
+    }
+  };
+
+  const handleVerifySubmit = async (event) => {
+    event.preventDefault();
+    setIsLoadingVerify(true);
+    setVerifyError("");
+    setVerifyData(null);
+    try {
+      const data = await verifyUser(verifyForm.email, verifyForm.token);
+      setVerifyData(data);
+    } catch (error) {
+      setVerifyError(error.message || "Request failed");
+    } finally {
+      setIsLoadingVerify(false);
+    }
+  };
 
   return (
     <>
@@ -29,36 +116,103 @@ function App() {
             Tailwind CSS is now installed and ready to use!
           </p>
         </div>
-        <button
-          className="counter mt-8 px-6 py-3 bg-accent text-white rounded-lg hover:bg-opacity-90 transition-colors font-medium"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-        <div className="mt-8 p-6 border border-border rounded-lg bg-social-bg">
-          <h2 className="text-2xl font-semibold text-text-h mb-4">
-            Tailwind CSS Classes Demo
-          </h2>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <div className="px-4 py-2 bg-blue-500 text-white rounded">
-              bg-blue-500
-            </div>
-            <div className="px-4 py-2 bg-green-500 text-white rounded">
-              bg-green-500
-            </div>
-            <div className="px-4 py-2 bg-red-500 text-white rounded">
-              bg-red-500
-            </div>
-            <div className="px-4 py-2 bg-yellow-500 text-black rounded">
-              bg-yellow-500
-            </div>
-            <div className="px-4 py-2 bg-purple-500 text-white rounded">
-              bg-purple-500
-            </div>
-          </div>
-          <p className="mt-4 text-sm text-text">
-            These colored boxes demonstrate Tailwind's utility classes.
-          </p>
+        <div className="w-full max-w-3xl mt-8 p-6 border border-border rounded-lg bg-social-bg">
+          <h2 className="text-2xl font-semibold text-text-h mb-4">API Actions</h2>
+
+          <form className="grid gap-3 mb-6" onSubmit={handleRegisterSubmit}>
+            <h3 className="text-xl font-semibold text-text-h">Register User</h3>
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="email"
+              placeholder="Email"
+              value={registerForm.email}
+              onChange={(e) =>
+                setRegisterForm((prev) => ({ ...prev, email: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="password"
+              placeholder="Password (minimum 8 characters)"
+              value={registerForm.password}
+              onChange={(e) =>
+                setRegisterForm((prev) => ({ ...prev, password: e.target.value }))
+              }
+              minLength={8}
+              required
+            />
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="text"
+              placeholder="Telephone"
+              value={registerForm.telephone}
+              onChange={(e) =>
+                setRegisterForm((prev) => ({ ...prev, telephone: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="text"
+              placeholder="First Name"
+              value={registerForm.firstName}
+              onChange={(e) =>
+                setRegisterForm((prev) => ({ ...prev, firstName: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="text"
+              placeholder="Last Name"
+              value={registerForm.lastName}
+              onChange={(e) =>
+                setRegisterForm((prev) => ({ ...prev, lastName: e.target.value }))
+              }
+              required
+            />
+            <button className="counter px-4 py-2" disabled={isLoadingRegister}>
+              {isLoadingRegister ? "Registering..." : "Register"}
+            </button>
+            {registerData && (
+              <pre className="text-xs overflow-auto text-text">
+                {JSON.stringify(registerData, null, 2)}
+              </pre>
+            )}
+            {registerError && <p className="text-red-500">{registerError}</p>}
+          </form>
+
+          <form className="grid gap-3" onSubmit={handleVerifySubmit}>
+            <h3 className="text-xl font-semibold text-text-h">Verify User</h3>
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="email"
+              placeholder="Email"
+              value={verifyForm.email}
+              onChange={(e) =>
+                setVerifyForm((prev) => ({ ...prev, email: e.target.value }))
+              }
+              required
+            />
+            <input
+              className="px-3 py-2 rounded border border-border bg-white"
+              type="text"
+              placeholder="Token"
+              value={verifyForm.token}
+              onChange={(e) =>
+                setVerifyForm((prev) => ({ ...prev, token: e.target.value }))
+              }
+              required
+            />
+            <button className="counter px-4 py-2" disabled={isLoadingVerify}>
+              {isLoadingVerify ? "Verifying..." : "Verify"}
+            </button>
+            {verifyData !== null && (
+              <p className="text-text">Result: {String(verifyData)}</p>
+            )}
+            {verifyError && <p className="text-red-500">{verifyError}</p>}
+          </form>
         </div>
       </section>
 
