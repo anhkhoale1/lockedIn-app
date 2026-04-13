@@ -1,143 +1,96 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
-import "./App.css";
+import { clearSession, getSession } from "./api/session";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [session, setSession] = useState(() => getSession());
+
+  const isLoggedIn = Boolean(session?.email);
+  const verificationLabel = session?.isVerified ? "Verified" : "Pending verification";
+
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+  };
 
   return (
-    <>
-      <div className="main-container">
-        <section id="center" className="p-8">
-          <div className="hero">
-            <img
-              src={heroImg}
-              className="base"
-              width="170"
-              height="179"
-              alt=""
-            />
-            <img src={reactLogo} className="framework" alt="React logo" />
-            <img src={viteLogo} className="vite" alt="Vite logo" />
-          </div>
-          <div className="mt-8">
-            <h1 className="text-4xl font-bold text-text-h mb-4">
-              User Registration System
-            </h1>
-            <p className="text-lg text-text">
-              This application integrates with the locked-in-user-api backend
-            </p>
-            <p className="mt-4 text-text">
-              Use the navigation below to access login and registration pages
-            </p>
-          </div>
-          <button
-            className="counter mt-8 px-6 py-3 bg-accent text-white rounded-lg hover:bg-opacity-90 transition-colors font-medium"
-            onClick={() => setCount((count) => count + 1)}
-          >
-            Count is {count}
-          </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm p-8">
+        <h1 className="text-3xl font-bold text-gray-900 text-center">
+          Account Dashboard
+        </h1>
+        <p className="mt-2 text-center text-gray-600">
+          Login, register, and track your email verification status.
+        </p>
 
-          <div className="mt-8 p-6 border border-border rounded-lg bg-social-bg">
-            <h2 className="text-2xl font-semibold text-text-h mb-4">
-              Application Navigation
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
+        {!isLoggedIn ? (
+          <div className="mt-8 space-y-4">
+            <div className="rounded-md bg-blue-50 text-blue-800 p-4 text-sm">
+              You are not logged in.
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link
                 to="/login"
-                className="py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-center"
+                className="text-center py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700"
               >
-                Login Page
+                Go to Login
               </Link>
               <Link
                 to="/register"
-                className="py-3 px-4 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-center"
+                className="text-center py-3 px-4 bg-green-600 text-white rounded-md font-medium hover:bg-green-700"
               >
-                Register Page
+                Create Account
               </Link>
             </div>
-            <p className="text-text mt-4 text-sm">
-              Click on the buttons above to navigate to the respective pages
-            </p>
           </div>
-        </section>
+        ) : (
+          <div className="mt-8 space-y-5">
+            <div className="rounded-md border border-gray-200 p-4">
+              <p className="text-sm text-gray-500">Logged in as</p>
+              <p className="text-lg font-semibold text-gray-900">{session.email}</p>
+              {session.firstName || session.lastName ? (
+                <p className="text-sm text-gray-600 mt-1">
+                  {session.firstName} {session.lastName}
+                </p>
+              ) : null}
+            </div>
 
-        <div className="ticks"></div>
+            <div
+              className={`rounded-md p-4 text-sm ${
+                session.isVerified
+                  ? "bg-green-50 text-green-700"
+                  : "bg-yellow-50 text-yellow-800"
+              }`}
+            >
+              Email verification status: <strong>{verificationLabel}</strong>
+              {!session.isVerified ? (
+                <p className="mt-2">
+                  Please use the verification link sent to your email inbox.
+                </p>
+              ) : null}
+            </div>
 
-        <section id="next-steps" className="mt-12">
-          <div id="docs" className="p-6 border border-border rounded-lg mb-6">
-            <svg className="icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#documentation-icon"></use>
-            </svg>
-            <h2 className="text-2xl font-semibold text-text-h mt-4 mb-2">
-              API Documentation
-            </h2>
-            <p className="text-text mb-4">Backend API endpoints</p>
-            <ul className="space-y-3">
-              <li>
-                <div className="flex items-center gap-3 p-3 hover:bg-accent-bg rounded-lg transition-colors">
-                  <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                    POST
-                  </div>
-                  <div>
-                    <span className="font-medium">/users/register</span>
-                    <p className="text-sm text-text">Register new user</p>
-                  </div>
-                </div>
-              </li>
-              <li>
-                <div className="flex items-center gap-3 p-3 hover:bg-accent-bg rounded-lg transition-colors">
-                  <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                    GET
-                  </div>
-                  <div>
-                    <span className="font-medium">/users/verify</span>
-                    <p className="text-sm text-text">Verify user email</p>
-                  </div>
-                </div>
-              </li>
-            </ul>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="py-3 px-4 bg-gray-800 text-white rounded-md font-medium hover:bg-gray-900"
+              >
+                Log out
+              </button>
+              {!session.isVerified ? (
+                <Link
+                  to="/verify-email"
+                  className="text-center py-3 px-4 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700"
+                >
+                  Open Verification Page
+                </Link>
+              ) : null}
+            </div>
           </div>
-          <div id="social" className="p-6 border border-border rounded-lg">
-            <svg className="icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#social-icon"></use>
-            </svg>
-            <h2 className="text-2xl font-semibold text-text-h mt-4 mb-2">
-              User Entity Fields
-            </h2>
-            <p className="text-text mb-4">Required fields for registration</p>
-            <ul className="grid grid-cols-2 gap-3">
-              <li className="p-3 bg-code-bg rounded">
-                <span className="font-medium">email</span>
-                <p className="text-sm text-text">Unique email address</p>
-              </li>
-              <li className="p-3 bg-code-bg rounded">
-                <span className="font-medium">telephone</span>
-                <p className="text-sm text-text">Unique phone number</p>
-              </li>
-              <li className="p-3 bg-code-bg rounded">
-                <span className="font-medium">firstName</span>
-                <p className="text-sm text-text">First name</p>
-              </li>
-              <li className="p-3 bg-code-bg rounded">
-                <span className="font-medium">lastName</span>
-                <p className="text-sm text-text">Last name</p>
-              </li>
-              <li className="p-3 bg-code-bg rounded">
-                <span className="font-medium">password</span>
-                <p className="text-sm text-text">Min. 8 characters</p>
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        <div className="ticks"></div>
-        <section id="spacer"></section>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 

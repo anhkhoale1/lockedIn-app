@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
+import { saveSession, toSessionUser } from "../api/session";
+import { loginUser } from "../api/users";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -7,8 +10,35 @@ const LoginForm = () => {
     password: "",
   });
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  const loginMutation = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (response, variables) => {
+      const sessionUser = toSessionUser(response, {
+        email: variables?.email,
+      });
+      saveSession(sessionUser);
+      navigate("/", { replace: true });
+    },
+    onError: (error) => {
+      const payload = error?.data;
+
+      if (typeof payload?.message === "string") {
+        setErrors({ general: payload.message });
+        return;
+      }
+
+      if (Array.isArray(payload?.message)) {
+        setErrors({ general: payload.message.join(", ") });
+        return;
+      }
+
+      setErrors({
+        general: error?.message || "Login failed. Please check your credentials.",
+      });
+    },
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,23 +79,8 @@ const LoginForm = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      // TODO: Implement actual login API call
-      console.log("Login data:", formData);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // For demo purposes, redirect to home on successful login
-      navigate("/");
-    } catch (error) {
-      console.error("Login error:", error);
-      setErrors({ general: "Login failed. Please check your credentials." });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setErrors({});
+    loginMutation.mutate(formData);
   };
 
   return (
@@ -147,14 +162,14 @@ const LoginForm = () => {
           <div>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={loginMutation.isPending}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isSubmitting
+                loginMutation.isPending
                   ? "bg-blue-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             >
-              {isSubmitting ? (
+              {loginMutation.isPending ? (
                 <span className="flex items-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"

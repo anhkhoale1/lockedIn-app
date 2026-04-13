@@ -13,7 +13,17 @@ export function registerUser(form) {
   });
 }
 
-export function verifyUser(email, token) {
+export function loginUser(form) {
+  return request("/users/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: form.email,
+      password: form.password,
+    }),
+  });
+}
+
+export function verifyUser({ email, token }) {
   const query = new URLSearchParams({ email, token }).toString();
   return request("/users/verify?" + query);
 }

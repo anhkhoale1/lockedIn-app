@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../api/users";
+import { saveSession, toSessionUser } from "../api/session";
+import { loginUser, registerUser } from "../api/users";
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +19,7 @@ const RegisterForm = () => {
 
   const registerMutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       setFormData({
         email: "",
         password: "",
@@ -28,9 +29,28 @@ const RegisterForm = () => {
         lastName: "",
       });
 
-      navigate("/verify-email", {
-        state: { email: variables?.email || "" },
-      });
+      try {
+        const authResponse = await loginUser({
+          email: variables?.email,
+          password: variables?.password,
+        });
+
+        const sessionUser = toSessionUser(authResponse, {
+          email: variables?.email,
+          firstName: variables?.firstName,
+          lastName: variables?.lastName,
+        });
+
+        saveSession(sessionUser);
+        navigate("/", { replace: true });
+      } catch {
+        navigate("/verify-email", {
+          state: {
+            email: variables?.email || "",
+            info: "Account created. Please verify your email using the link in your inbox.",
+          },
+        });
+      }
     },
     onError: (error) => {
       const payload = error?.data;
