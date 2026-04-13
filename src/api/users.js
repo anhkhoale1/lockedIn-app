@@ -27,3 +27,17 @@ export function verifyUser({ email, token }) {
   const query = new URLSearchParams({ email, token }).toString();
   return request("/users/verify?" + query);
 }
+
+export function forgotPassword(email) {
+  return request("/users/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword({ token, newPassword, confirmPassword }) {
+  return request("/users/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword, confirmPassword }),
+  });
+}
