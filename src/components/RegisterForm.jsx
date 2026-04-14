@@ -1,5 +1,8 @@
 import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
+import { saveSession, toSessionUser } from "../api/session";
+import { loginUser, registerUser } from "../api/users";
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -12,9 +15,73 @@ const RegisterForm = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
+
+  const registerMutation = useMutation({
+    mutationFn: registerUser,
+    onSuccess: async (_, variables) => {
+      setFormData({
+        email: "",
+        password: "",
+        confirmPassword: "",
+        telephone: "",
+        firstName: "",
+        lastName: "",
+      });
+
+      try {
+        const authResponse = await loginUser({
+          email: variables?.email,
+          password: variables?.password,
+        });
+
+        const sessionUser = toSessionUser(authResponse, {
+          email: variables?.email,
+          firstName: variables?.firstName,
+          lastName: variables?.lastName,
+        });
+
+        saveSession(sessionUser);
+        navigate("/", { replace: true });
+      } catch {
+        navigate("/verify-email", {
+          state: {
+            email: variables?.email || "",
+            info: "Account created. Please verify your email using the link in your inbox.",
+          },
+        });
+      }
+    },
+    onError: (error) => {
+      const payload = error?.data;
+
+      if (payload?.message && Array.isArray(payload.message)) {
+        const apiErrors = {};
+        payload.message.forEach((item) => {
+          const msg = String(item);
+          if (msg.includes("email")) apiErrors.email = msg;
+          else if (msg.includes("password")) apiErrors.password = msg;
+          else if (msg.includes("telephone")) apiErrors.telephone = msg;
+          else if (msg.includes("firstName")) apiErrors.firstName = msg;
+          else if (msg.includes("lastName")) apiErrors.lastName = msg;
+        });
+
+        if (Object.keys(apiErrors).length > 0) {
+          setErrors(apiErrors);
+          return;
+        }
+      }
+
+      if (typeof payload?.message === "string") {
+        setErrors({ general: payload.message });
+        return;
+      }
+
+      setErrors({
+        general: error?.message || "Registration failed. Please try again.",
+      });
+    },
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,104 +149,10 @@ const RegisterForm = () => {
       return;
     }
 
-    setIsSubmitting(true);
     setErrors({});
 
-    try {
-      // Prepare data for API (remove confirmPassword as it's not needed in the API)
-      const { confirmPassword, ...apiData } = formData;
-
-      try {
-        // Call the API endpoint
-        const response = await fetch("http://localhost:3000/users/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(apiData),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          // Handle API validation errors
-          if (data.message && Array.isArray(data.message)) {
-            const apiErrors = {};
-            data.message.forEach((error) => {
-              // Extract field name from error message
-              if (error.includes("email")) apiErrors.email = error;
-              else if (error.includes("password")) apiErrors.password = error;
-              else if (error.includes("telephone")) apiErrors.telephone = error;
-              else if (error.includes("firstName")) apiErrors.firstName = error;
-              else if (error.includes("lastName")) apiErrors.lastName = error;
-            });
-            setErrors(apiErrors);
-          } else if (data.message) {
-            setErrors({ general: data.message });
-          } else {
-            setErrors({ general: "Registration failed. Please try again." });
-          }
-          return;
-        }
-
-        // Success
-        setSuccessMessage(
-          "Registration successful! Please check your email to verify your account.",
-        );
-
-        // Reset form
-        setFormData({
-          email: "",
-          password: "",
-          confirmPassword: "",
-          telephone: "",
-          firstName: "",
-          lastName: "",
-        });
-
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
-      } catch (fetchError) {
-        console.error("API fetch error:", fetchError);
-
-        // Check if API is not available
-        if (
-          fetchError.message.includes("Failed to fetch") ||
-          fetchError.message.includes("NetworkError")
-        ) {
-          // Mock successful response for demo purposes
-          console.log("API not available, showing demo success message");
-          setSuccessMessage(
-            "Demo: Registration would be successful! (API endpoint: POST http://localhost:3000/users/register)",
-          );
-
-          // Show the data that would be sent to API
-          console.log("Data that would be sent to API:", apiData);
-
-          // Reset form
-          setFormData({
-            email: "",
-            password: "",
-            confirmPassword: "",
-            telephone: "",
-            firstName: "",
-            lastName: "",
-          });
-        } else {
-          setErrors({
-            general:
-              "Network error. Please check your connection and try again.",
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      setErrors({ general: "An unexpected error occurred. Please try again." });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const { confirmPassword, ...apiData } = formData;
+    registerMutation.mutate(apiData);
   };
 
   return (
@@ -349,14 +322,14 @@ const RegisterForm = () => {
           <div>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={registerMutation.isPending}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isSubmitting
+                registerMutation.isPending
                   ? "bg-blue-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
               } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             >
-              {isSubmitting ? (
+              {registerMutation.isPending ? (
                 <span className="flex items-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
