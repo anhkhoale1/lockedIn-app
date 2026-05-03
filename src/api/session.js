@@ -52,6 +52,8 @@ export function toSessionUser(authResponse, fallback = {}) {
       authResponse?.accessToken ||
       authResponse?.jwt ||
       null,
+    ptId: authResponse?.user?.ptId ?? null,
+    trainerId: authResponse?.user?.trainerId ?? null,
   };
 }
 
@@ -83,5 +85,19 @@ export function markSessionVerified(email) {
   saveSession({
     ...current,
     isVerified: true,
+  });
+}
+
+/**
+ * Store the user's active identity choice ('pt' | 'trainer') in the session.
+ * activeIdentity is a UX hint only — server-side authorization uses JWT claims.
+ */
+export function setActiveIdentity(identity) {
+  const current = getSession();
+  if (!current) return;
+
+  saveSession({
+    ...current,
+    activeIdentity: identity,
   });
 }
