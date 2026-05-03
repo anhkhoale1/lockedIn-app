@@ -12,6 +12,8 @@ const RegisterForm = () => {
     telephone: "",
     firstName: "",
     lastName: "",
+    role: "trainer",
+    certificate: null,
   });
 
   const [errors, setErrors] = useState({});
@@ -27,6 +29,8 @@ const RegisterForm = () => {
         telephone: "",
         firstName: "",
         lastName: "",
+        role: "trainer",
+        certificate: null,
       });
 
       try {
@@ -98,6 +102,25 @@ const RegisterForm = () => {
     }
   };
 
+  const handleRoleChange = (selectedRole) => {
+    setFormData({
+      ...formData,
+      role: selectedRole,
+      // Reset certificate when switching away from PT
+      certificate: selectedRole === "pt" ? formData.certificate : null,
+    });
+  };
+
+  const handleCertificateChange = (e) => {
+    const file = e.target.files?.[0] ?? null;
+    // Store certificate file in component state only — no upload in Round 1
+    // TODO(Round 2): upload certificate after registration via dedicated endpoint
+    setFormData({
+      ...formData,
+      certificate: file,
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -151,7 +174,8 @@ const RegisterForm = () => {
 
     setErrors({});
 
-    const { confirmPassword, ...apiData } = formData;
+    // Exclude confirmPassword and certificate from the API payload (certificate upload deferred to Round 2)
+    const { confirmPassword: _confirmPassword, certificate: _certificate, ...apiData } = formData;
     registerMutation.mutate(apiData);
   };
 
@@ -180,6 +204,58 @@ const RegisterForm = () => {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {/* Role toggle — Trainer (default) or PT */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">I am signing up as a</p>
+            <div className="flex rounded-md overflow-hidden border border-gray-300">
+              <button
+                type="button"
+                onClick={() => handleRoleChange("trainer")}
+                className={`flex-1 py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors ${
+                  formData.role === "trainer"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Trainer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleChange("pt")}
+                className={`flex-1 py-2 px-4 text-sm font-medium border-l border-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors ${
+                  formData.role === "pt"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Personal Trainer (PT)
+              </button>
+            </div>
+          </div>
+
+          {/* Certificate upload — only visible when PT is selected */}
+          {formData.role === "pt" && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 space-y-2">
+              <p className="text-sm text-blue-700">
+                We&apos;ll ask you to upload your certificate after sign-up. You can attach it here for your reference — it won&apos;t be submitted until a verification step in a future update.
+              </p>
+              <label htmlFor="certificate" className="block text-sm font-medium text-gray-700">
+                Certificate (optional)
+              </label>
+              <input
+                id="certificate"
+                name="certificate"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleCertificateChange}
+                className="block w-full text-sm text-gray-700 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+              />
+              {formData.certificate && (
+                <p className="text-xs text-gray-500">Selected: {formData.certificate.name}</p>
+              )}
+            </div>
+          )}
+
           <div className="rounded-md shadow-sm -space-y-px">
             <div className="grid grid-cols-2 gap-3">
               <div>
