@@ -9,7 +9,15 @@ const VerifyEmailForm = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [infoMessage, setInfoMessage] = useState("");
+  const [infoMessage, _setInfoMessage] = useState(() => {
+    if (location.state?.email) {
+      return `Verification email sent to ${location.state.email}. Please click the link in your inbox.`;
+    }
+    if (location.state?.info) {
+      return location.state.info;
+    }
+    return "";
+  });
 
   const { email, token } = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -37,22 +45,10 @@ const VerifyEmailForm = () => {
   });
 
   useEffect(() => {
-    if (location.state?.email) {
-      setInfoMessage(
-        `Verification email sent to ${location.state.email}. Please click the link in your inbox.`,
-      );
-    } else if (location.state?.info) {
-      setInfoMessage(location.state.info);
-    }
-  }, [location.state]);
-
-  useEffect(() => {
     if (!email || !token) return;
 
-    setErrorMessage("");
-    setSuccessMessage("");
     verifyMutation.mutate({ email, token });
-  }, [email, token]);
+  }, [email, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">

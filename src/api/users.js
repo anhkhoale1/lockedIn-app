@@ -9,6 +9,7 @@ export function registerUser(form) {
       telephone: form.telephone,
       firstName: form.firstName,
       lastName: form.lastName,
+      ...(form.role ? { role: form.role } : {}),
     }),
   });
 }
