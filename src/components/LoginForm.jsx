@@ -4,6 +4,22 @@ import { Link, useNavigate } from "react-router-dom";
 import { saveSession, toSessionUser } from "../api/session";
 import { loginUser } from "../api/users";
 
+/**
+ * Determine where to send the user after a successful login based on
+ * which role IDs are present in the session.
+ *
+ * // TODO(reload-routing): apply same logic when restoring an existing session on page load
+ */
+function routeAfterLogin(sessionUser) {
+  const hasPt = Boolean(sessionUser?.ptId);
+  const hasTrainer = Boolean(sessionUser?.trainerId);
+
+  if (hasPt && hasTrainer) return "/identity-selection";
+  if (hasPt) return "/pt-dashboard";
+  if (hasTrainer) return "/trainer-dashboard";
+  return "/";
+}
+
 const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: "",
@@ -19,7 +35,7 @@ const LoginForm = () => {
         email: variables?.email,
       });
       saveSession(sessionUser);
-      navigate("/", { replace: true });
+      navigate(routeAfterLogin(sessionUser), { replace: true });
     },
     onError: (error) => {
       const payload = error?.data;
