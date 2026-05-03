@@ -4,9 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App";
 import ForgotPasswordForm from "./components/ForgotPasswordForm";
+import IdentitySelection from "./components/IdentitySelection";
 import LoginForm from "./components/LoginForm";
+import PtDashboard from "./components/PtDashboard";
 import RegisterForm from "./components/RegisterForm";
 import ResetPasswordForm from "./components/ResetPasswordForm";
+import TrainerDashboard from "./components/TrainerDashboard";
 import VerifyEmailForm from "./components/VerifyEmailForm";
 import "./index.css";
 
@@ -40,6 +43,18 @@ const router = createBrowserRouter([
   {
     path: "/verify-email",
     element: <VerifyEmailForm />,
+  },
+  {
+    path: "/identity-selection",
+    element: <IdentitySelection />,
+  },
+  {
+    path: "/pt-dashboard",
+    element: <PtDashboard />,
+  },
+  {
+    path: "/trainer-dashboard",
+    element: <TrainerDashboard />,
   },
 ]);
 
